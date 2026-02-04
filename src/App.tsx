@@ -1,20 +1,40 @@
 import { useEffect, useState } from "react";
-import type { Schema } from "../amplify/data/resource";
-import { generateClient } from "aws-amplify/data";
+import "./App.css";
 
-const client = generateClient<Schema>();
+interface Todo {
+  id: string;
+  content: string;
+}
 
 function App() {
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+  const [todos, setTodos] = useState<Array<Todo>>([]);
 
+  // Cargar todos del localStorage al iniciar
   useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
-    });
+    const stored = localStorage.getItem('todos');
+    if (stored) {
+      setTodos(JSON.parse(stored));
+    }
   }, []);
 
+  // Guardar en localStorage cada vez que cambian los todos
+  useEffect(() => {
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }, [todos]);
+
   function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
+    const content = window.prompt("Todo content");
+    if (content) {
+      const newTodo: Todo = {
+        id: Date.now().toString(),
+        content: content
+      };
+      setTodos([...todos, newTodo]);
+    }
+  }
+
+  function deleteTodo(id: string) {
+    setTodos(todos.filter(todo => todo.id !== id));
   }
 
   return (
@@ -23,15 +43,18 @@ function App() {
       <button onClick={createTodo}>+ new</button>
       <ul>
         {todos.map((todo) => (
-          <li key={todo.id}>{todo.content}</li>
+          <li key={todo.id}>
+            {todo.content}
+            <button onClick={() => deleteTodo(todo.id)} style={{marginLeft: '10px'}}>
+              ❌
+            </button>
+          </li>
         ))}
       </ul>
       <div>
-        🥳 App successfully hosted. Try creating a new todo.
+        🥳 App successfully hosted on AWS Amplify!
         <br />
-        <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
-          Review next step of this tutorial.
-        </a>
+        Your todos are saved in localStorage.
       </div>
     </main>
   );
